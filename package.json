@@ -1,0 +1,23 @@
+{
+  "name": "project-camp",
+  "version": "1.0.0",
+  "description": "project-management backend",
+  "keywords": [
+    "project-management",
+    "backend",
+    "APIs",
+    "nodejs"
+  ],
+  "license": "ISC",
+  "author": "Yash",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.11",
+    "prettier": "3.7.3"
+  }
+}
