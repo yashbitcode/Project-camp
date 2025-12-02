@@ -1,5 +1,6 @@
 const express = require("express");
 const cors = require("cors");
+const healthCheckRouter = require("./routes/healthCheck.routes");
 const app = express();
 
 app.use(express.json({ limit: "16kb" }));
@@ -15,6 +16,7 @@ app.use(
     })
 );
 
+app.use("/api/v1/healthcheck", healthCheckRouter);
 app.get("/", (req, res) => res.send("all good"));
 
 module.exports = app;
