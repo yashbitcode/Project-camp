@@ -3,11 +3,12 @@ const cors = require("cors");
 const healthCheckRouter = require("./routes/healthCheck.routes");
 const AuthRouter = require("./routes/auth.routes");
 const app = express();
-// const jwt = require('jsonwebtoken');
+const cookieParser = require("cookie-parser");
 
 app.use(express.json({ limit: "16kb" }));
 app.use(express.static("public"));
 app.use(express.urlencoded({ extended: true, limit: "16kb" }));
+app.use(cookieParser());
 
 app.use(
     cors({
@@ -20,17 +21,5 @@ app.use(
 
 app.use("/api/v1/healthcheck", healthCheckRouter);
 app.use("/api/v1/auth", AuthRouter);
-
-// app.get("/", async (req, res) => {
-//     const token = jwt.sign({ foo: 'dsjdsij' }, 'shhhhh', {expiresIn: "0h"});
-//     res.send(token);
-// });
-
-// app.post("/", async (req, res) => {
-//     const p = jwt.verify(req.body.token, "shhhhh");
-//     console.log(p);
-
-//     res.json(p);
-// })
 
 module.exports = app;

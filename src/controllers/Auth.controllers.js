@@ -39,7 +39,7 @@ const register = asyncHandler(async (req, res) => {
         isEmailVerified: false
     });
 
-    const { accessToken } = await generateTokens(user);
+    // const { accessToken } = await generateTokens(user);
     const { unHashedToken, hashedToken, tokenExpiry } =
         await user.generateTemporaryToken();
 
@@ -57,22 +57,46 @@ const register = asyncHandler(async (req, res) => {
         )
     });
 
-    // const createdUser = await User.findById(user._id).select(
-    //     "-password -isEmailVerfied -emailVerificationToken -emailVerificationExpiry -forgotPasswordToken -forgotPasswordExpiry -refreshToken"
-    // );
-
-    // if (!createdUser)
-    //     throw new ApiError(500, "Something went wrong while creating the user");
-
     res.status(201).json(
         new ApiResponse(
             201,
             { user: savedUser },
             "User created and verification email sent successfully!"
         )
-    ); 
+    );
+});
+
+const login = asyncHandler(async (req, res) => {
+    const { email, password } = req.body;
+
+    const user = await User.findOne({ email });
+    if (!user) throw new ApiError(400, "User doesn't exist with this email");
+
+    const isPasswordCorrect = user.isPasswordCorrect(password);
+
+    if (!isPasswordCorrect) throw new ApiError("Invalid credentials");
+
+    const { accessToken, refreshToken } = await generateTokens(user);
+    
+    const options = {
+        httpOnly: true,
+        secure: true
+    };
+
+    return res
+        .status(200)
+        .cookie("accessToken", accessToken, options)
+        .cookie("refreshToken", refreshToken, options)
+        .json(
+            new ApiResponse(
+                200,
+                { user, accessToken, refreshToken },
+                "User logged in successfully!"
+            )
+        );
 });
 
 module.exports = {
-    register
+    register,
+    login
 };
