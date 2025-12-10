@@ -15,7 +15,7 @@ const generateTokens = async (user) => {
             accessToken,
             refreshToken
         };
-    } catch (error) {
+    } catch {
         throw new ApiError(500, "Something went wrong while token generation");
     }
 };
@@ -39,7 +39,6 @@ const register = asyncHandler(async (req, res) => {
         isEmailVerified: false
     });
 
-    // const { accessToken } = await generateTokens(user);
     const { unHashedToken, hashedToken, tokenExpiry } =
         await user.generateTemporaryToken();
 
@@ -72,12 +71,12 @@ const login = asyncHandler(async (req, res) => {
     const user = await User.findOne({ email });
     if (!user) throw new ApiError(400, "User doesn't exist with this email");
 
-    const isPasswordCorrect = user.isPasswordCorrect(password);
+    const isPasswordCorrect = await user.isPasswordCorrect(password);
 
-    if (!isPasswordCorrect) throw new ApiError("Invalid credentials");
+    if (!isPasswordCorrect) throw new ApiError(400, "Invalid credentials");
 
     const { accessToken, refreshToken } = await generateTokens(user);
-    
+
     const options = {
         httpOnly: true,
         secure: true
@@ -96,7 +95,27 @@ const login = asyncHandler(async (req, res) => {
         );
 });
 
+const logout = asyncHandler(async (req, res) => {
+    const userId = req.user._id;
+    await User.findByIdAndUpdate(
+        userId,
+        {
+            refreshToken: ""
+        },
+        {
+            returnDocument: "after"
+        }
+    );
+
+    return res
+        .status(200)
+        .clearCookie("accessToken")
+        .clearCookie("refreshToken")
+        .json(new ApiResponse(200, {}, "User logout successfully!"));
+});
+
 module.exports = {
     register,
-    login
+    login,
+    logout
 };
