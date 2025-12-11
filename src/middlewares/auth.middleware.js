@@ -4,9 +4,9 @@ const { asyncHandler } = require("../utils/async-handler")
 const jwt = require("jsonwebtoken");
 
 const authenticateToken = asyncHandler(async (req, res, next) => {
-    const accessToken = req.cookies?.accessToken || req.headers("Authorization")?.replace("Bearer ", "");
+    const accessToken = req.cookies?.accessToken || req.headers["Authorization"]?.replace("Bearer ", "");
 
-    if(!accessToken) throw new ApiError("Access token required");
+    if(!accessToken) throw new ApiError(400, "Access token required");
 
     let decoded;
     

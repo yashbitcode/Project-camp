@@ -79,9 +79,9 @@ UserSchema.methods.generateRefreshToken = async function() {
 };
 
 UserSchema.methods.generateTemporaryToken = async function() {
-    const unHashedToken = crypto.randomBytes(20);
+    const unHashedToken = crypto.randomBytes(20).toString("hex");
     const hashedToken = crypto
-        .createHmac("sha256", "sasa")
+        .createHmac("sha256", process.env.VERIFICATION_TOKEN_SECRET)
         .update(unHashedToken)
         .digest("hex");
     const tokenExpiry = Date.now() + (20 * 60 * 1000);

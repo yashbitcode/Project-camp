@@ -3,6 +3,7 @@ const { asyncHandler } = require("../utils/async-handler");
 const ApiResponse = require("../utils/api-response");
 const ApiError = require("../utils/api-error");
 const { sendEmail, emailVerificationMailContent } = require("../utils/mail");
+const crypto = require("node:crypto");
 
 const generateTokens = async (user) => {
     try {
@@ -44,6 +45,7 @@ const register = asyncHandler(async (req, res) => {
 
     user.emailVerificationToken = hashedToken;
     user.emailVerificationExpiry = tokenExpiry;
+    console.log(unHashedToken);
 
     const savedUser = await user.save();
 
@@ -114,8 +116,91 @@ const logout = asyncHandler(async (req, res) => {
         .json(new ApiResponse(200, {}, "User logout successfully!"));
 });
 
+const getCurrentUser = asyncHandler((req, res) => {
+    return res
+        .status(200)
+        .json(new ApiResponse(200, req.user, "User fetched successfully!"));
+});
+
+const verifyEmail = asyncHandler(async (req, res) => {
+    const { verificationToken } = req.params;
+
+    if (!verificationToken)
+        throw new ApiError(400, "Verification token required");
+
+    const hash = crypto
+        .createHmac("sha256", process.env.VERIFICATION_TOKEN_SECRET)
+        .update(verificationToken)
+        .digest("hex");
+
+    const user = await User.findOneAndUpdate(
+        {
+            emailVerificationToken: hash,
+            emailVerificationExpiry: {
+                $gte: Date.now()
+            }
+        },
+        {
+            emailVerificationToken: "",
+            emailVerificationExpiry: null,
+            isEmailVerfied: true
+        },
+        {
+            new: true
+        }
+    );
+
+    if (!user) throw new ApiError(400, "Verification token invalid");
+
+    return res
+        .status(200)
+        .json(new ApiResponse(200, req.user, "Email verified successfully!"));
+});
+
+const refreshAccessToken = asyncHandler(async (req, res) => {
+    const refreshToken = req.headers("refreshToken") || req.body.refreshToken;
+    if (!refreshToken) throw new ApiError(400, "Refresh token is required");
+
+    let decoded;
+
+    try {
+        decoded = await jwt.verify(
+            refreshToken,
+            process.env.REFRESH_TOKEN_SECRET
+        );
+    } catch {
+        throw new ApiError(400, "Invalid refresh token");
+    }
+
+    const user = await User.finyById(decoded._id);
+
+    if (!user || (user.refreshToken && user.refreshToken !== refreshToken))
+        throw new ApiError(400, "Invalid refresh token");
+
+    if (!user.refreshToken) throw new Error("Refresh token expired");
+
+    const { accessToken, refreshToken: newRefreshToken } =
+        await generateTokens(user);
+
+    await user.save();
+    
+    const options = {
+        httpOnly: true,
+        secure: true
+    };
+
+    return res 
+        .status(200)
+        .cookie("accessToken", accessToken, options)
+        .cookie("refreshToken", newRefreshToken, options)
+        .json(new ApiResponse(200, {accessToken, refreshToken: newRefreshToken}, "Access token refreshed"));
+});
+
 module.exports = {
     register,
     login,
-    logout
+    logout,
+    getCurrentUser,
+    verifyEmail,
+    refreshAccessToken
 };
